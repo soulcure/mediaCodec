@@ -2,7 +2,6 @@ package com.coocaa.mediacodec;
 
 import android.media.MediaCodec;
 import android.media.MediaFormat;
-import android.os.Build;
 import android.util.Log;
 import android.view.Surface;
 
@@ -10,19 +9,16 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class DecoderVideo {
-    private String TAG = "yao";
-    private MediaCodec mVideoDecoder = null;
+    private static final String TAG = "yao";
 
-
-    private Surface mSurface;
-
-    private int mFrameWidth;
-    private int mFrameHeight;
-
-    private LinkedBlockingQueue<FrameInfo> videoList;
+    private final Surface mSurface;
+    private final int mFrameWidth;
+    private final int mFrameHeight;
+    private final LinkedBlockingQueue<FrameInfo> videoList;
 
     private boolean isExit;
 
+    private MediaCodec mVideoDecoder = null;
     private boolean videoDecoderConfigured = false;
 
     public DecoderVideo(Surface surface, int width, int height, LinkedBlockingQueue<FrameInfo> videoList) {
@@ -31,41 +27,28 @@ public class DecoderVideo {
         mFrameHeight = height;
         this.videoList = videoList;
 
+        new Thread(this::videoDecoderInput).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                videoDecoderInput();
-            }
-        }).start();
-
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                videoDecoderOutput();
-            }
-        }).start();
-
-
+        new Thread(this::videoDecoderOutput).start();
     }
 
     private void initDecoder(MediaCodec.BufferInfo info, ByteBuffer encodedFrame) {
         if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {//配置数据
             try {
-                String mimeType = MediaFormat.MIMETYPE_VIDEO_AVC;  //colin TV和PAD不支持H265,强制H264
+                String mimeType = MediaFormat.MIMETYPE_VIDEO_AVC;  //强制H264
                 MediaFormat format = MediaFormat.createVideoFormat(mimeType, mFrameWidth, mFrameHeight);
                 format.setByteBuffer("csd-0", encodedFrame);
                 format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, mFrameWidth * mFrameHeight);
 
                 if (mVideoDecoder == null) {
-                    // mVideoDecoder = MediaCodec.createDecoderByType(mimeType);
 
-                    // 创建指定的解码器
-                    // mVideoDecoder = MediaCodec.createByCodecName("OMX.google.h264.decoder");
-                    // 指定使用rk的解码器
-                    mVideoDecoder = MediaCodec.createByCodecName("c2.rk.avc.decoder");
-                    // mVideoDecoder = MediaCodec.createByCodecName("OMX.qcom.video.decoder.avc");
+                    mVideoDecoder = MediaCodec.createDecoderByType(mimeType); // 指定系统默认的H264解码器
+                    // mVideoDecoder = MediaCodec.createByCodecName("OMX.google.h264.decoder");//创建指定google解码器,软解
+
+                    // mVideoDecoder = MediaCodec.createByCodecName("OMX.qcom.video.decoder.avc"); // 指定使用高通解码器
+
+                    // for RK3588解码器名称
+                    // mVideoDecoder = MediaCodec.createByCodecName("c2.rk.avc.decoder"); // 指定使用rk解码器
 
                 }
                 mVideoDecoder.reset();
@@ -75,7 +58,7 @@ public class DecoderVideo {
                 videoDecoderConfigured = true;
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(TAG, "VideoDecoder init error" + e.toString());
+                Log.e(TAG, "VideoDecoder init error=" + e);
             }
 
         }
@@ -101,18 +84,16 @@ public class DecoderVideo {
                     continue;
                 }
 
-                ByteBuffer[] inputBuf = mVideoDecoder.getInputBuffers();
-                inputBuf[inputBufIndex].clear();
-                inputBuf[inputBufIndex].put(encodedFrames);
+                ByteBuffer inputBuf = mVideoDecoder.getInputBuffer(inputBufIndex);
+                inputBuf.clear();
+                inputBuf.put(encodedFrames);
                 //解码数据添加到输入缓存中
                 mVideoDecoder.queueInputBuffer(inputBufIndex, info.offset, info.size, info.presentationTimeUs, info.flags);
-
-                Log.d(TAG, "end queue input buffer with ts " + info.presentationTimeUs + ",info.size :" + info.size);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(TAG, "videoDecoderInput error---" + e.getMessage());
+                Log.e(TAG, "videoDecoderInput error=" + e.getMessage());
             }
         }
 
@@ -139,13 +120,12 @@ public class DecoderVideo {
                 int decoderIndex = mVideoDecoder.dequeueOutputBuffer(info, -1);
                 if (decoderIndex > 0) {
                     mVideoDecoder.releaseOutputBuffer(decoderIndex, true);
-                    Log.e("colin", "colin start time07 --- pad start VideoDecoder dequeueOutputBuffer finish");
                 } else {
-                    Log.e(TAG, "videoDecoderOutput dequeueOutputBuffer error---" + decoderIndex);
+                    Log.e(TAG, "videoDecoderOutput dequeueOutputBuffer error=" + decoderIndex);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(TAG, "videoDecoderOutput error---" + e.getMessage());
+                Log.e(TAG, "videoDecoderOutput error=" + e.getMessage());
             }
         }
 

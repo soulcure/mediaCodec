@@ -37,17 +37,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "yao";
 
+    private TextureView mPreviewView;
+    private Handler processHandler;
 
-    Handler processHandler, mainHandler;
-    TextureView mPreviewView, mDecodeView;
-
-    CameraCaptureSession mSession;
-    CaptureRequest.Builder mPreviewBuilder;
-    CameraDevice mCameraDevice;
-    Surface mEncoderSurface;
+    private CaptureRequest.Builder mPreviewBuilder;
+    private CameraDevice mCameraDevice;
+    private Surface mEncoderSurface;
     private MediaCodec mCodec;
-    DecoderVideo decoder;
-
+    private DecoderVideo decoder;
 
     boolean isEncode = false;
 
@@ -59,8 +56,6 @@ public class MainActivity extends AppCompatActivity {
     int mPreviewViewWidth, mPreviewViewHeight;
 
     private static final int MIN_BITRATE_THRESHOLD = 4 * 1024 * 1024;  //bit per second，每秒比特率
-    private static final int DEFAULT_BITRATE = 6 * 1024 * 1024;
-    private static final int MAX_BITRATE_THRESHOLD = 8 * 1024 * 1024;
 
     private static final int MAX_VIDEO_FPS = 60;   //frames/sec
     private static final int I_FRAME_INTERVAL = 10;  //关键帧频率，10秒一个关键帧
@@ -178,29 +173,19 @@ public class MainActivity extends AppCompatActivity {
         handlerThread.start();
 
         processHandler = new Handler(handlerThread.getLooper());
-        mainHandler = new Handler(getMainLooper());
 
         mPreviewView = findViewById(R.id.cameraSurface);
         mPreviewView.setSurfaceTextureListener(encodeSurfaceCallBack);
 
+        TextureView decodeView = findViewById(R.id.decodeSurface);
+        decodeView.setSurfaceTextureListener(decodeSurfaceCallBack);
 
-        mDecodeView = findViewById(R.id.decodeSurface);
-        mDecodeView.setSurfaceTextureListener(decodeSurfaceCallBack);
-
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                checkEncoderSupportCodec();
-            }
-        }).start();
-
+        new Thread(this::checkEncoderSupportCodec).start();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
                 PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, permission, REQUEST_CODE);
         }
-
 
     }
 
@@ -399,7 +384,6 @@ public class MainActivity extends AppCompatActivity {
         public void onConfigured(CameraCaptureSession session) {
             try {
                 Log.i(TAG, "onConfigured");
-                mSession = session;
                 // 自动对焦
                 mPreviewBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                 // 打开闪光灯
