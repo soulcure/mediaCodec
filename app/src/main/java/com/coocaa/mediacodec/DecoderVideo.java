@@ -42,13 +42,13 @@ public class DecoderVideo {
 
                 if (mVideoDecoder == null) {
 
-                    mVideoDecoder = MediaCodec.createDecoderByType(mimeType); // 指定系统默认的H264解码器
+                    // mVideoDecoder = MediaCodec.createDecoderByType(mimeType); // 指定系统默认的H264解码器
                     // mVideoDecoder = MediaCodec.createByCodecName("OMX.google.h264.decoder");//创建指定google解码器,软解
 
                     // mVideoDecoder = MediaCodec.createByCodecName("OMX.qcom.video.decoder.avc"); // 指定使用高通解码器
 
                     // for RK3588解码器名称
-                    // mVideoDecoder = MediaCodec.createByCodecName("c2.rk.avc.decoder"); // 指定使用rk解码器
+                    mVideoDecoder = MediaCodec.createByCodecName("c2.rk.avc.decoder"); // 指定使用rk解码器
 
                 }
                 mVideoDecoder.reset();
