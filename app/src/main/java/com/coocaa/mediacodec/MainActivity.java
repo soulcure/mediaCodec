@@ -43,8 +43,8 @@ public class MainActivity extends AppCompatActivity {
     private CaptureRequest.Builder mPreviewBuilder;
     private CameraDevice mCameraDevice;
     private Surface mEncoderSurface;
-    private MediaCodec mCodec;
-    private DecoderVideo decoder;
+    private MediaCodec mEncoder;
+    private DecoderVideo decoderVideo;
 
     boolean isEncode = false;
 
@@ -52,8 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
     private LinkedBlockingQueue<FrameInfo> mSendQueue;
 
-
-    int mPreviewViewWidth, mPreviewViewHeight;
+    private int mPreviewViewWidth, mPreviewViewHeight;
 
     private static final int MIN_BITRATE_THRESHOLD = 4 * 1024 * 1024;  //bit per second，每秒比特率
 
@@ -87,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
             //在这里可以通过CameraCharacteristics设置相机的功能,当然必须检查是否支持
             characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
             //就像这样
-            startCodec();
+            startMediaCodecEncoder();
             if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) !=
                     PackageManager.PERMISSION_GRANTED) {
                 return;
@@ -101,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
     private final TextureView.SurfaceTextureListener encodeSurfaceCallBack = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-            Log.e(TAG, "onSurfaceTextureAvailable:  width = " + width + ", height = " + height);
+            Log.i(TAG, "onSurfaceTextureAvailable:  width = " + width + ", height = " + height);
             mPreviewViewWidth = width;
             mPreviewViewHeight = height;
             if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) ==
@@ -114,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-            Log.e(TAG, "onSurfaceTextureSizeChanged:  width = " + width + ", height = " + height);
+            Log.i(TAG, "onSurfaceTextureSizeChanged:  width = " + width + ", height = " + height);
             mPreviewViewWidth = width;
             mPreviewViewHeight = height;
         }
@@ -135,19 +134,19 @@ public class MainActivity extends AppCompatActivity {
     private final TextureView.SurfaceTextureListener decodeSurfaceCallBack = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-            Log.e(TAG, "decodeSurfaceCallBack onSurfaceTextureAvailable:  width = " + width + ", height = " + height);
-            decoder = new DecoderVideo(new Surface(surface), width, 720, mSendQueue);
+            Log.i(TAG, "decodeSurfaceCallBack onSurfaceTextureAvailable:  width = " + width + ", height = " + height);
+            decoderVideo = new DecoderVideo(new Surface(surface), width, height, mSendQueue);
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-            Log.e(TAG, "decodeSurfaceCallBack onSurfaceTextureSizeChanged:  width = " + width + ", height = " + height);
+            Log.i(TAG, "decodeSurfaceCallBack onSurfaceTextureSizeChanged:  width = " + width + ", height = " + height);
         }
 
         @Override
         public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
-            if (decoder != null) {
-                decoder.close();
+            if (decoderVideo != null) {
+                decoderVideo.close();
             }
             return false;
         }
@@ -180,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
         TextureView decodeView = findViewById(R.id.decodeSurface);
         decodeView.setSurfaceTextureListener(decodeSurfaceCallBack);
 
+        //开启线程打印设备硬编硬解的支持参数
         new Thread(this::checkEncoderSupportCodec).start();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
@@ -204,22 +204,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * 检查设备硬编硬解的支持参数
+     */
     private void checkEncoderSupportCodec() {
         //获取所有编解码器个数
         MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);
         MediaCodecInfo[] codecs = list.getCodecInfos();
 
+        //获取所有支持的编解码器信息
         for (MediaCodecInfo codecInfo : codecs) {
-            //获取所有支持的编解码器信息
-
-            // 判断是否为编码器，否则直接进入下一次循环
-            boolean isEncoder = codecInfo.isEncoder();
-            boolean isHardware = codecInfo.isHardwareAccelerated();
+            boolean isEncoder = codecInfo.isEncoder();//是否是编码器
+            boolean isHardware = codecInfo.isHardwareAccelerated();//是否是硬件支持
 
             String name = codecInfo.getName();
             // 如果是解码器，判断是否支持Mime类型
             String[] types = codecInfo.getSupportedTypes();
             for (String type : types) {
+                //H264类型&&硬件类型
                 if (type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_AVC) && isHardware) {
                     MediaCodecInfo.CodecCapabilities codecCapabilities = codecInfo.getCapabilitiesForType(type);
                     MediaCodecInfo.VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
@@ -231,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
                     logParams(false, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString());
                 }
 
-
+                //H265类型&&硬件类型
                 if (type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_HEVC) && isHardware) {
                     MediaCodecInfo.CodecCapabilities codecCapabilities = codecInfo.getCapabilitiesForType(type);
                     MediaCodecInfo.VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
@@ -267,24 +269,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void startCodec() {
+    /**
+     * 开始视频编码
+     */
+    public void startMediaCodecEncoder() {
         try {
-            mCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC);
+
+            //todo 在此处调试硬件编码器
+            mEncoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC);//使用系统默认H264编码器
+            //mEncoder = MediaCodec.createByCodecName("c2.rk.avc.encoder"); // 指定使用rk编码器
+
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         MediaFormat mediaFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC,
-                mPreviewViewWidth, 720);
+                mPreviewViewWidth, mPreviewViewHeight);
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, MIN_BITRATE_THRESHOLD);//500kbps
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, MAX_VIDEO_FPS);
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface); //COLOR_FormatSurface
         mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, I_FRAME_INTERVAL);
-        mCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        mEncoderSurface = mCodec.createInputSurface();
+        mEncoder.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        mEncoderSurface = mEncoder.createInputSurface();
         //method 1
-        mCodec.setCallback(new EncoderCallback());
-        mCodec.start();
+        mEncoder.setCallback(new EncoderCallback());
+        mEncoder.start();
     }
 
     public void stopCodec() {
@@ -292,13 +301,13 @@ public class MainActivity extends AppCompatActivity {
             if (isEncode) {
                 isEncode = false;
             } else {
-                mCodec.stop();
-                mCodec.release();
-                mCodec = null;
+                mEncoder.stop();
+                mEncoder.release();
+                mEncoder = null;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            mCodec = null;
+            mEncoder = null;
         }
     }
 
@@ -310,18 +319,18 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-            ByteBuffer outPutByteBuffer = mCodec.getOutputBuffer(index);
+            ByteBuffer outPutByteBuffer = mEncoder.getOutputBuffer(index);
             assert outPutByteBuffer != null;
-            Log.d(TAG, " outDate.length : " + outPutByteBuffer.remaining());
+            Log.v(TAG, " outDate.length : " + outPutByteBuffer.remaining());
             mSendQueue.offer(new FrameInfo(info, outPutByteBuffer));
 
-            Log.d(TAG, " mSendQueue.length : " + mSendQueue.size());
-            mCodec.releaseOutputBuffer(index, false);
+            Log.v(TAG, " mSendQueue.length : " + mSendQueue.size());
+            mEncoder.releaseOutputBuffer(index, false);
         }
 
         @Override
         public void onError(@NonNull MediaCodec codec, @NonNull MediaCodec.CodecException e) {
-            Log.d(TAG, "Error: " + e);
+            Log.e(TAG, "Error: " + e);
         }
 
         @Override

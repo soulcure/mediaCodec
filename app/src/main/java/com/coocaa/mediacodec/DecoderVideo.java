@@ -18,7 +18,7 @@ public class DecoderVideo {
 
     private boolean isExit;
 
-    private MediaCodec mVideoDecoder = null;
+    private MediaCodec mDecoder = null;
     private boolean videoDecoderConfigured = false;
 
     public DecoderVideo(Surface surface, int width, int height, LinkedBlockingQueue<FrameInfo> videoList) {
@@ -40,21 +40,23 @@ public class DecoderVideo {
                 format.setByteBuffer("csd-0", encodedFrame);
                 format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, mFrameWidth * mFrameHeight);
 
-                if (mVideoDecoder == null) {
+                if (mDecoder == null) {
 
-                    // mVideoDecoder = MediaCodec.createDecoderByType(mimeType); // 指定系统默认的H264解码器
-                    // mVideoDecoder = MediaCodec.createByCodecName("OMX.google.h264.decoder");//创建指定google解码器,软解
+                    // todo 解码器调试修改此处
 
-                    // mVideoDecoder = MediaCodec.createByCodecName("OMX.qcom.video.decoder.avc"); // 指定使用高通解码器
+                    mDecoder = MediaCodec.createDecoderByType(mimeType); // 指定系统默认的H264解码器
+                    // mDecoder = MediaCodec.createByCodecName("OMX.google.h264.decoder");//创建指定google解码器,软解
+
+                    // mDecoder = MediaCodec.createByCodecName("OMX.qcom.video.decoder.avc"); // 指定使用高通解码器
 
                     // for RK3588解码器名称
-                    mVideoDecoder = MediaCodec.createByCodecName("c2.rk.avc.decoder"); // 指定使用rk解码器
+                    // mDecoder = MediaCodec.createByCodecName("c2.rk.avc.decoder"); // 指定使用rk解码器
 
                 }
-                mVideoDecoder.reset();
-                mVideoDecoder.configure(format, mSurface, null, 0);
-                mVideoDecoder.setVideoScalingMode(MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT);//VIDEO_SCALING_MODE_SCALE_TO_FIT
-                mVideoDecoder.start();
+                mDecoder.reset();
+                mDecoder.configure(format, mSurface, null, 0);
+                mDecoder.setVideoScalingMode(MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT);//VIDEO_SCALING_MODE_SCALE_TO_FIT
+                mDecoder.start();
                 videoDecoderConfigured = true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -78,17 +80,18 @@ public class DecoderVideo {
                 initDecoder(info, encodedFrames);
 
                 //解码 请求一个输入缓存
-                int inputBufIndex = mVideoDecoder.dequeueInputBuffer(-1);
+                int inputBufIndex = mDecoder.dequeueInputBuffer(-1);
                 if (inputBufIndex < 0) {
                     Log.e(TAG, "dequeueInputBuffer result error---" + inputBufIndex);
                     continue;
                 }
 
-                ByteBuffer inputBuf = mVideoDecoder.getInputBuffer(inputBufIndex);
+                ByteBuffer inputBuf = mDecoder.getInputBuffer(inputBufIndex);
                 inputBuf.clear();
                 inputBuf.put(encodedFrames);
                 //解码数据添加到输入缓存中
-                mVideoDecoder.queueInputBuffer(inputBufIndex, info.offset, info.size, info.presentationTimeUs, info.flags);
+                mDecoder.queueInputBuffer(inputBufIndex, info.offset, info.size, info.presentationTimeUs, info.flags);
+                Log.v(TAG, "end queue input buffer with ts " + info.presentationTimeUs + ",info.size :" + info.size);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (Exception e) {
@@ -117,9 +120,9 @@ public class DecoderVideo {
                     continue;
                 }
 
-                int decoderIndex = mVideoDecoder.dequeueOutputBuffer(info, -1);
+                int decoderIndex = mDecoder.dequeueOutputBuffer(info, -1);
                 if (decoderIndex > 0) {
-                    mVideoDecoder.releaseOutputBuffer(decoderIndex, true);
+                    mDecoder.releaseOutputBuffer(decoderIndex, true);
                 } else {
                     Log.e(TAG, "videoDecoderOutput dequeueOutputBuffer error=" + decoderIndex);
                 }
@@ -135,11 +138,11 @@ public class DecoderVideo {
 
     private synchronized void closeDecoder() {
         try {
-            if (mVideoDecoder != null) {
+            if (mDecoder != null) {
                 Log.d(TAG, "unhappy decoder release");
-                mVideoDecoder.stop();
-                mVideoDecoder.release();
-                mVideoDecoder = null;
+                mDecoder.stop();
+                mDecoder.release();
+                mDecoder = null;
             }
         } catch (Exception e) {
             e.printStackTrace();
