@@ -223,6 +223,8 @@ public class MainActivity extends AppCompatActivity {
             for (String type : types) {
                 //H264类型&&硬件类型
                 if (type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_AVC) && isHardware) {
+                    int maxSupportedInstances = codecInfo.getCapabilitiesForType(type).getMaxSupportedInstances();
+
                     MediaCodecInfo.CodecCapabilities codecCapabilities = codecInfo.getCapabilitiesForType(type);
                     MediaCodecInfo.VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
 
@@ -230,11 +232,13 @@ public class MainActivity extends AppCompatActivity {
                     Range<Integer> widthRange = videoCapabilities.getSupportedWidths();
                     Range<Integer> heightRange = videoCapabilities.getSupportedHeights();
 
-                    logParams(false, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString());
+                    logParams(false, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString(), maxSupportedInstances);
                 }
 
                 //H265类型&&硬件类型
                 if (type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_HEVC) && isHardware) {
+                    int maxSupportedInstances = codecInfo.getCapabilitiesForType(type).getMaxSupportedInstances();
+
                     MediaCodecInfo.CodecCapabilities codecCapabilities = codecInfo.getCapabilitiesForType(type);
                     MediaCodecInfo.VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
 
@@ -242,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
                     Range<Integer> heightRange = videoCapabilities.getSupportedHeights();
                     Range<Integer> widthRange = videoCapabilities.getSupportedWidths();
 
-                    logParams(true, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString());
+                    logParams(true, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString(), maxSupportedInstances);
                 }
             }
         }
@@ -250,7 +254,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void logParams(boolean isH265, String name, boolean isEncode, String bitrateRange, String width, String height) {
+    private void logParams(boolean isH265, String name, boolean isEncode,
+                           String bitrateRange, String width, String height, int maxSupportedInstances) {
         String str;
 
         if (isH265) {
@@ -260,9 +265,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (isEncode) {
-            str = str + "硬件编码器：" + name + " 码率：" + bitrateRange + " 视频width范围：" + width + " 视频height范围：" + height;
+            str = str + "硬件编码器：" + name + " 码率：" + bitrateRange + " 视频width范围：" + width + " 视频height范围：" + height + " 最大实例数：" + maxSupportedInstances;
         } else {
-            str = str + "硬件解码器：" + name + " 码率：" + bitrateRange + " 视频width范围：" + width + " 视频height范围" + height;
+            str = str + "硬件解码器：" + name + " 码率：" + bitrateRange + " 视频width范围：" + width + " 视频height范围" + height + " 最大实例数：" + maxSupportedInstances;
         }
 
         Log.d(TAG, str);
