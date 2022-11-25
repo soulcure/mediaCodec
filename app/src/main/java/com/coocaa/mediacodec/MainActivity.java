@@ -14,7 +14,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.btn_camera).setOnClickListener(this);
-        findViewById(R.id.btn_screen).setOnClickListener(this);
+        findViewById(R.id.btn_screen_texture).setOnClickListener(this);
+        findViewById(R.id.btn_screen_surface).setOnClickListener(this);
     }
 
     @Override
@@ -22,8 +23,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         int id = v.getId();
         if (id == R.id.btn_camera) {
             startActivity(new Intent(this, MainActivity1.class));
-        } else if (id == R.id.btn_screen) {
+        } else if (id == R.id.btn_screen_texture) {
             startActivity(new Intent(this, MainActivity2.class));
+        } else if (id == R.id.btn_screen_surface) {
+            startActivity(new Intent(this, MainActivity3.class));
         }
     }
 }

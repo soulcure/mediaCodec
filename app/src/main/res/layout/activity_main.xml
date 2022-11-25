@@ -24,10 +24,20 @@
             android:layout_height="10dp" />
 
         <Button
-            android:id="@+id/btn_screen"
+            android:id="@+id/btn_screen_texture"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="screen source" />
+            android:text="screen source texture" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="10dp" />
+
+        <Button
+            android:id="@+id/btn_screen_surface"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="screen source surface" />
 
     </LinearLayout>
 
