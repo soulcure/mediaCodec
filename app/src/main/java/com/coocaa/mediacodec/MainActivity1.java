@@ -94,6 +94,7 @@ public class MainActivity1 extends AppCompatActivity {
             cameraManager.openCamera(CameraIdList[0], mCameraDeviceStateCallback, processHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
+            Log.e(TAG, "88 error=" + e.getMessage());
         }
     }
 

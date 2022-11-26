@@ -16,6 +16,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.btn_camera).setOnClickListener(this);
         findViewById(R.id.btn_screen_texture).setOnClickListener(this);
         findViewById(R.id.btn_screen_surface).setOnClickListener(this);
+        findViewById(R.id.btn_yuv_camera2).setOnClickListener(this);
+        findViewById(R.id.btn_yuv_camera1).setOnClickListener(this);
     }
 
     @Override
@@ -27,6 +29,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(new Intent(this, MainActivity2.class));
         } else if (id == R.id.btn_screen_surface) {
             startActivity(new Intent(this, MainActivity3.class));
+        } else if (id == R.id.btn_yuv_camera2) {
+            startActivity(new Intent(this, MainActivity4.class));
+        } else if (id == R.id.btn_yuv_camera1) {
+            startActivity(new Intent(this, MainActivity5.class));
         }
     }
 }

@@ -44,6 +44,16 @@
             android:exported="true"
             android:screenOrientation="landscape" />
 
+        <activity
+            android:name=".MainActivity4"
+            android:exported="true"
+            android:screenOrientation="landscape" />
+
+        <activity
+            android:name=".MainActivity5"
+            android:exported="true"
+            android:screenOrientation="landscape" />
+
         <service
             android:name=".MediaProjectFgService"
             android:enabled="true"

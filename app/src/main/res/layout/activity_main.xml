@@ -21,7 +21,7 @@
 
         <View
             android:layout_width="1dp"
-            android:layout_height="10dp" />
+            android:layout_height="1dp" />
 
         <Button
             android:id="@+id/btn_screen_texture"
@@ -31,13 +31,33 @@
 
         <View
             android:layout_width="1dp"
-            android:layout_height="10dp" />
+            android:layout_height="1dp" />
 
         <Button
             android:id="@+id/btn_screen_surface"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="screen source surface" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="1dp" />
+
+        <Button
+            android:id="@+id/btn_yuv_camera2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="camera2 source" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="1dp" />
+
+        <Button
+            android:id="@+id/btn_yuv_camera1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="camera1 source" />
 
     </LinearLayout>
 
