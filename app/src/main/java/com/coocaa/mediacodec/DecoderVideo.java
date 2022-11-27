@@ -1,5 +1,7 @@
 package com.coocaa.mediacodec;
 
+import static android.media.MediaCodec.INFO_TRY_AGAIN_LATER;
+
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.util.Log;
@@ -20,6 +22,8 @@ public class DecoderVideo {
 
     private MediaCodec mDecoder = null;
     private boolean videoDecoderConfigured = false;
+
+    private static final long timeoutUs = 1000 * 1000;//timeoutUs – 以微秒为单位的超时，负超时表示“无限”
 
     public DecoderVideo(Surface surface, int width, int height, LinkedBlockingQueue<FrameInfo> videoList) {
         mSurface = surface;
@@ -80,7 +84,7 @@ public class DecoderVideo {
                 initDecoder(info, encodedFrames);
 
                 //解码 请求一个输入缓存
-                int inputBufIndex = mDecoder.dequeueInputBuffer(-1);
+                int inputBufIndex = mDecoder.dequeueInputBuffer(timeoutUs);
                 if (inputBufIndex < 0) {
                     Log.e(TAG, "dequeueInputBuffer result error---" + inputBufIndex);
                     continue;
@@ -110,7 +114,7 @@ public class DecoderVideo {
      */
     private void videoDecoderOutput() {
         while (!videoDecoderConfigured) {
-            waitTimes(10);
+            waitTimes();
         }
 
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
@@ -120,15 +124,19 @@ public class DecoderVideo {
                     continue;
                 }
 
-                int decoderIndex = mDecoder.dequeueOutputBuffer(info, -1);
-                if (decoderIndex > 0) {
+                int decoderIndex = mDecoder.dequeueOutputBuffer(info, timeoutUs);
+                if (decoderIndex >= 0) {
                     mDecoder.releaseOutputBuffer(decoderIndex, true);
                 } else {
-                    Log.e(TAG, "videoDecoderOutput dequeueOutputBuffer error=" + decoderIndex);
+                    if (decoderIndex == INFO_TRY_AGAIN_LATER) {
+                        Log.e(TAG, "解码器超时...");
+                    } else {
+                        Log.e(TAG, "解码器错误 error=" + decoderIndex);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(TAG, "videoDecoderOutput error=" + e.getMessage());
+                Log.e(TAG, "解码器异常 exception=" + e.getMessage());
             }
         }
 
@@ -149,9 +157,9 @@ public class DecoderVideo {
         }
     }
 
-    private void waitTimes(long ms) {
+    private void waitTimes() {
         try {
-            Thread.sleep(ms);
+            Thread.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

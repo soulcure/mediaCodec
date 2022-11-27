@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
 
-
+@SuppressWarnings("deprecation")
 public class MainActivity5 extends AppCompatActivity {
     private static final String TAG = "yao";
     private static final int MIN_BITRATE_THRESHOLD = 4 * 1024 * 1024;  //bit per second，每秒比特率
@@ -40,8 +40,6 @@ public class MainActivity5 extends AppCompatActivity {
 
     private CameraDevice mCameraDevice;
     private MediaCodec mEncoder;
-
-    boolean isEncode = false;
 
     private LinkedBlockingQueue<FrameInfo> mSendQueue;
 
@@ -63,6 +61,7 @@ public class MainActivity5 extends AppCompatActivity {
     private SurfaceHolder holder, holder_dec;
     private Camera camera;
     private SurfaceView surfaceView_cam, surfaceView_dec;
+    private static final long timeoutUs = 1000 * 1000;//timeoutUs – 以微秒为单位的超时，负超时表示“无限”
 
 
     @Override
@@ -136,9 +135,13 @@ public class MainActivity5 extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopCodec();
+    }
 
     /**
      * 检查设备硬编硬解的支持参数
@@ -226,7 +229,10 @@ public class MainActivity5 extends AppCompatActivity {
                 mPreviewSize.getWidth(), mPreviewSize.getHeight());
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, MIN_BITRATE_THRESHOLD);//500kbps
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, MAX_VIDEO_FPS);
-        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedSemiPlanar); //COLOR_FormatSurface
+
+        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar); //COLOR_FormatSurface
+        mediaFormat.setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR);
+
         mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, I_FRAME_INTERVAL);
         mEncoder.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         mEncoder.start();
@@ -235,9 +241,7 @@ public class MainActivity5 extends AppCompatActivity {
 
     public void stopCodec() {
         try {
-            if (isEncode) {
-                isEncode = false;
-            } else {
+            if (mEncoder != null) {
                 mEncoder.stop();
                 mEncoder.release();
                 mEncoder = null;
@@ -288,7 +292,7 @@ public class MainActivity5 extends AppCompatActivity {
         byte[] nv12 = NV21ToNV12(nv21, mPreviewSize.getWidth(), mPreviewSize.getHeight());
 //        byte[] nv12 = nv21;
 
-        int inputBufferIndex = mEncoder.dequeueInputBuffer(-1);
+        int inputBufferIndex = mEncoder.dequeueInputBuffer(timeoutUs);
         if (inputBufferIndex < 0) {
             Log.e(TAG, "dequeueInputBuffer result error:" + inputBufferIndex);
             return;
@@ -307,7 +311,7 @@ public class MainActivity5 extends AppCompatActivity {
 
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
         //拿到输出缓冲区的索引
-        int outputBufferIndex = mEncoder.dequeueOutputBuffer(bufferInfo, -1);
+        int outputBufferIndex = mEncoder.dequeueOutputBuffer(bufferInfo, timeoutUs);
         if (outputBufferIndex < 0) {
             Log.e(TAG, "dequeueOutputBuffer result error:" + outputBufferIndex);
             return;

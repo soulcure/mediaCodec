@@ -76,6 +76,8 @@ public class MainActivity4 extends AppCompatActivity {
     private Surface mPreviewSurface; // 输出到屏幕的预览
     private ImageReader mImageReader; // 预览回调的接收者
 
+    private static final long timeoutUs = 1000 * 1000;//timeoutUs – 以微秒为单位的超时，负超时表示“无限”
+
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
@@ -196,6 +198,18 @@ public class MainActivity4 extends AppCompatActivity {
     }
 
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        releaseCamera();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopCodec();
+    }
+
     /**
      * 检查设备硬编硬解的支持参数
      */
@@ -291,9 +305,7 @@ public class MainActivity4 extends AppCompatActivity {
 
     public void stopCodec() {
         try {
-            if (isEncode) {
-                isEncode = false;
-            } else {
+            if (mEncoder != null) {
                 mEncoder.stop();
                 mEncoder.release();
                 mEncoder = null;
@@ -354,7 +366,7 @@ public class MainActivity4 extends AppCompatActivity {
         //byte[] nv12 = NV21ToNV12(nv21, mWidth, mHeight);
         byte[] nv12 = nv21;
 
-        int inputBufferIndex = mEncoder.dequeueInputBuffer(-1);
+        int inputBufferIndex = mEncoder.dequeueInputBuffer(timeoutUs);
         if (inputBufferIndex < 0) {
             Log.e(TAG, "dequeueInputBuffer result error:" + inputBufferIndex);
             return;
@@ -373,7 +385,7 @@ public class MainActivity4 extends AppCompatActivity {
 
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
         //拿到输出缓冲区的索引
-        int outputBufferIndex = mEncoder.dequeueOutputBuffer(bufferInfo, -1);
+        int outputBufferIndex = mEncoder.dequeueOutputBuffer(bufferInfo, timeoutUs);
         if (outputBufferIndex < 0) {
             Log.e(TAG, "dequeueOutputBuffer result error:" + outputBufferIndex);
             return;
