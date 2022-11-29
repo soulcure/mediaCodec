@@ -14,15 +14,11 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
-import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.Range;
-import android.view.Display;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.Window;
@@ -36,7 +32,6 @@ import com.coocaa.mediacodec.util.Permission;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ReadOnlyBufferException;
 import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -181,8 +176,6 @@ public class MainActivity4 extends AppCompatActivity {
         TextureView decodeView = findViewById(R.id.decodeSurface);
         decodeView.setSurfaceTextureListener(decodeSurfaceCallBack);
 
-        //开启线程打印设备硬编硬解的支持参数
-        new Thread(this::checkEncoderSupportCodec).start();
     }
 
     @Override
@@ -210,74 +203,6 @@ public class MainActivity4 extends AppCompatActivity {
         stopCodec();
     }
 
-    /**
-     * 检查设备硬编硬解的支持参数
-     */
-    private void checkEncoderSupportCodec() {
-        //获取所有编解码器个数
-        MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);
-        MediaCodecInfo[] codecs = list.getCodecInfos();
-
-        //获取所有支持的编解码器信息
-        for (MediaCodecInfo codecInfo : codecs) {
-            boolean isEncoder = codecInfo.isEncoder();//是否是编码器
-            boolean isHardware = codecInfo.isHardwareAccelerated();//是否是硬件支持
-
-            String name = codecInfo.getName();
-            // 如果是解码器，判断是否支持Mime类型
-            String[] types = codecInfo.getSupportedTypes();
-            for (String type : types) {
-                //H264类型&&硬件类型
-                if (type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_AVC) && isHardware) {
-                    int maxSupportedInstances = codecInfo.getCapabilitiesForType(type).getMaxSupportedInstances();
-
-                    MediaCodecInfo.CodecCapabilities codecCapabilities = codecInfo.getCapabilitiesForType(type);
-                    MediaCodecInfo.VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
-
-                    Range<Integer> bitrateRange = videoCapabilities.getBitrateRange();
-                    Range<Integer> widthRange = videoCapabilities.getSupportedWidths();
-                    Range<Integer> heightRange = videoCapabilities.getSupportedHeights();
-
-                    logParams(false, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString(), maxSupportedInstances);
-                }
-
-                //H265类型&&硬件类型
-                if (type.equalsIgnoreCase(MediaFormat.MIMETYPE_VIDEO_HEVC) && isHardware) {
-                    int maxSupportedInstances = codecInfo.getCapabilitiesForType(type).getMaxSupportedInstances();
-
-                    MediaCodecInfo.CodecCapabilities codecCapabilities = codecInfo.getCapabilitiesForType(type);
-                    MediaCodecInfo.VideoCapabilities videoCapabilities = codecCapabilities.getVideoCapabilities();
-
-                    Range<Integer> bitrateRange = videoCapabilities.getBitrateRange();
-                    Range<Integer> heightRange = videoCapabilities.getSupportedHeights();
-                    Range<Integer> widthRange = videoCapabilities.getSupportedWidths();
-
-                    logParams(true, name, isEncoder, bitrateRange.toString(), widthRange.toString(), heightRange.toString(), maxSupportedInstances);
-                }
-            }
-        }
-
-    }
-
-
-    private void logParams(boolean isH265, String name, boolean isEncode,
-                           String bitrateRange, String width, String height, int maxSupportedInstances) {
-        String str;
-
-        if (isH265) {
-            str = "H265";
-        } else {
-            str = "H264";
-        }
-
-        if (isEncode) {
-            str = str + "硬件编码器：" + name + " 码率：" + bitrateRange + " 视频width范围：" + width + " 视频height范围：" + height + " 最大实例数：" + maxSupportedInstances;
-        } else {
-            str = str + "硬件解码器：" + name + " 码率：" + bitrateRange + " 视频width范围：" + width + " 视频height范围" + height + " 最大实例数：" + maxSupportedInstances;
-        }
-
-        Log.d(TAG, str);
-    }
 
     /**
      * 开始视频编码
