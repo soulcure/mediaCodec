@@ -17,7 +17,7 @@
             android:id="@+id/btn_camera"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="camera source" />
+            android:text="camera2 texture" />
 
         <View
             android:layout_width="1dp"
@@ -27,7 +27,7 @@
             android:id="@+id/btn_screen_texture"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="screen source texture" />
+            android:text="screen texture" />
 
         <View
             android:layout_width="1dp"
@@ -37,7 +37,7 @@
             android:id="@+id/btn_screen_surface"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="screen source surface" />
+            android:text="screen surface" />
 
         <View
             android:layout_width="1dp"
@@ -47,7 +47,7 @@
             android:id="@+id/btn_yuv_camera2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="camera2 source" />
+            android:text="camera2 YUV" />
 
         <View
             android:layout_width="1dp"
@@ -57,7 +57,7 @@
             android:id="@+id/btn_yuv_camera1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="camera1 source" />
+            android:text="camera1 YUV" />
 
     </LinearLayout>
 
