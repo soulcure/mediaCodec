@@ -38,7 +38,7 @@ public class MainActivity3 extends AppCompatActivity {
     private static final int BITRATE = 4 * 1024 * 1024;
 
     private static final int MAX_VIDEO_FPS = 30;   //frames/sec
-    private static final int I_FRAME_INTERVAL = 5;  //关键帧频率，5秒一个关键帧
+    private static final int I_FRAME_INTERVAL = 1;  //关键帧频率，5秒一个关键帧
 
     private Context mContext;
     private MediaProjection mMediaProjection;
